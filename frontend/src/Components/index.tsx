@@ -1,0 +1,6 @@
+export {default as Header} from "./Header/Header"
+export {default as Product} from "./Product/Product"
+export {default as Loader} from "./Loader/Loader"
+export {default as Modal} from "./Modal/Modal"
+export {default as Message} from "./Message/Message"
+export {default as Layout} from "./Message/Message"
