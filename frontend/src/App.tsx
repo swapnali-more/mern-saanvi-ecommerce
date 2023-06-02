@@ -4,9 +4,13 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AddProduct, Admin, Cart, Checkout, Home, Orders, Profile, Products, Auth, ProductDetail, NotFound } from './Containers';
 import { Header } from './Components';
 import PrivateRoute from './Constant/PrivateRoute';
-
+import { checkAuthentication } from './Constant/APIResponse';
 
 const App = () => {
+
+  const responseString = localStorage.getItem('profile');
+  const isAuthenticated = checkAuthentication(responseString);
+
   return (
     <div className="App">
       <BrowserRouter>
@@ -41,7 +45,7 @@ const App = () => {
             path="/profile"
             element={<PrivateRoute component={Profile} />}
           />
-          <Route path="/auth" element={<Auth />} />
+          {!isAuthenticated && <Route path="/auth" element={<Auth />} /> }
           <Route element={<NotFound />} />
         </Routes>
       </BrowserRouter>
