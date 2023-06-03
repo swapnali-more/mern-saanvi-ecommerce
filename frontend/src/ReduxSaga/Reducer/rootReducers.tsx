@@ -5,7 +5,7 @@ import { productCartReducer } from "./productCartReducer";
 import { productDetailReducer } from "./productDetailReducer";
 import { createUserReducer } from "./createUserReducer";
 import { usersReducer } from "./usersReducer";
-import { loginUserReducer } from "./loginUserReducer";
+import { logInOutUserReducer } from "./logInOutUserReducer";
 
 const rootReducers = combineReducers({
     products: productsReducer,
@@ -14,7 +14,7 @@ const rootReducers = combineReducers({
     productDetail: productDetailReducer,
     users: usersReducer,
     createUser: createUserReducer,
-    loginUser: loginUserReducer,
+    logInOutUser: logInOutUserReducer,
 })
 
 export default rootReducers

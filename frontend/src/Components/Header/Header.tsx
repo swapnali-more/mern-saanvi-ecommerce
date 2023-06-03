@@ -1,12 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Avatar, Button, Tooltip, MenuItem, useMediaQuery, Theme } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import logo from "../../Utils/images/logo.png";
 import useStyles from "./HeaderStyles"
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MAIN_CATEGORY as pages, MAIN_SETTINGS as settings } from '../../config';
+import { logoutUserSuccess } from '../../ReduxSaga/Actions/logInOutUserActions';
+import { connect, useDispatch } from 'react-redux';
 
-const Header = () => {
+const Header = ({ userData }: any) => {
+
+  const responseString = localStorage.getItem('profile');
+  console.log(responseString)
 
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
@@ -44,6 +49,24 @@ const Header = () => {
   }
 
   const classes = useStyles();
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (userData === null) {
+      // User has logged out
+      handleCloseUserMenu(); // Close user menu
+      // You can perform any additional actions here, such as redirecting to a login page
+    }
+  }, [userData]);
+
+  const logoutUser = () => {
+    dispatch(logoutUserSuccess());
+    setTimeout(() => {
+      navigate('/auth')
+    }, 2000)
+  };
 
   return (
     <AppBar position="static">
@@ -148,7 +171,7 @@ const Header = () => {
               {settings.map(({ name, link }) => (
                 <MenuItem key={name} onClick={handleCloseUserMenu}>
                   {name === 'Logout' ?
-                    <Button>{name}</Button>
+                    <Button onClick={logoutUser}>{name}</Button>
                     :
                     <Link to={link} className={classes.menuLink}>{name}</Link>
                   }
@@ -162,4 +185,12 @@ const Header = () => {
   );
 }
 
-export default Header
+const mapStateToProps = (state: { logInOutUser: { userData: any; }; }) => ({
+  userData: state.logInOutUser.userData,
+});
+
+const mapDispatchToProps = {
+  logoutUserSuccess,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(Header);

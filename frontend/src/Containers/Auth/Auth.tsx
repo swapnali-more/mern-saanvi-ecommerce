@@ -8,8 +8,9 @@ import { createUserRequest } from '../../ReduxSaga/Actions/createUserActions';
 import { fetchUsersRequest } from '../../ReduxSaga/Actions/usersActions';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import { loginUserRequest } from '../../ReduxSaga/Actions/loginUserActions';
+import { loginUserRequest } from '../../ReduxSaga/Actions/logInOutUserActions';
 import { useNavigate } from 'react-router-dom';
+import bcrypt from 'bcryptjs';
 
 const validationRegSchema = Yup.object().shape({
   userName: Yup.string().required('User Name is required!'),
@@ -43,10 +44,11 @@ interface userProps {
   isLoadingLog: any;
   errorLog: any;
   messageLog: any;
+  isLoggedIn: boolean;
 }
 
 const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLog, messageLog }: userProps) => {
-  console.log(users)
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -66,6 +68,30 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
     return users.some((user: any) => user.userEmail === email)
   }
 
+  const [errMessage, setErrMessage] = useState(false)
+  const [displayedMessage, setDisplayedMessage] = useState("");
+
+  useEffect(() => {
+    setDisplayedMessage('');
+    const timer = setTimeout(() => {
+      setDisplayedMessage('');
+      setErrMessage(false)
+    }, 5000);
+    if (messageReg) {
+      setErrMessage(false)
+      setDisplayedMessage(messageReg);
+      clearTimeout(timer);
+    } else if (messageLog) {
+      setErrMessage(false)
+      setDisplayedMessage(messageLog);
+      clearTimeout(timer);
+    } else if (errMessage) {
+      setDisplayedMessage('Incorrect email or password');
+      clearTimeout(timer);
+    }
+    return () => clearTimeout(timer);
+  }, [messageReg, messageLog, errMessage]);
+
   const formikReg = useFormik({
     initialValues: {
       userName: users.length > 0 ? users[0].userName : '',
@@ -84,7 +110,15 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
       } else if (userEmailRepeated) {
         formikReg.setErrors({ userEmail: "User email already exists" })
       } else {
-        dispatch(createUserRequest('POST', values))
+        const hashedPassword = bcrypt.hashSync(values.userPassword);
+        const hashedConfirmPassword = bcrypt.hashSync(values.userConfirmPassword);
+        
+        dispatch(createUserRequest('POST', {
+          ...values,
+          userPassword: hashedPassword,
+          userConfirmPassword: hashedConfirmPassword,
+        }));
+        
         resetForm();
       }
     }
@@ -98,9 +132,17 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
     },
     validationSchema: validationLogSchema,
     onSubmit: async (values, { resetForm }) => {
-      dispatch(loginUserRequest('POST', values))
-      resetForm();
-      navigate('/');
+      const { userEmail, userPassword } = values;
+      const user = users.find((user) => user.userEmail === userEmail && bcrypt.compareSync(userPassword, user.userPassword));
+
+      if (user) {
+        dispatch(loginUserRequest('POST', values))
+        resetForm();
+        navigate('/')
+      } else {
+        // Handle incorrect email or password
+        setErrMessage(true)
+      }
     }
   })
 
@@ -112,7 +154,7 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
       <Box>
         <Grid container spacing={2}>
           <Grid item xs={6} sx={{ borderRight: 1, paddingLeft: 20, paddingRight: 20 }} component="form" onSubmit={formikReg.handleSubmit}>
-          {messageReg && <Alert variant="outlined" severity={errorReg ? "error" : "success"} sx={{fontSize: 14, alignItems: 'center', mb: 2}}>{messageReg}</Alert> }
+            {(displayedMessage && messageReg) && <Alert variant="outlined" severity={errorReg ? "error" : "success"} sx={{ fontSize: 14, alignItems: 'center', mb: 2 }}>{displayedMessage}</Alert>}
             <Typography variant="h3" textAlign="center" mb={4}>New In Saanvi</Typography>
             {["userName", "userEmail", "userPassword", "userConfirmPassword", "isAdmin"].map((input) => (
               <FormControl fullWidth sx={{ mb: 2 }}>
@@ -168,7 +210,8 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
             <Button type="submit" variant='contained'>Register</Button>
           </Grid>
           <Grid item xs={6} sx={{ paddingLeft: 20, paddingRight: 20 }} component="form" onSubmit={formikLog.handleSubmit}>
-          {messageLog && <Alert variant="outlined" severity={errorReg ? "error" : "success"} sx={{fontSize: 14, alignItems: 'center', mb: 2}}>{messageLog}</Alert> }
+            {(displayedMessage && messageLog) && <Alert variant="outlined" severity={errorLog ? "error" : "success"} sx={{ fontSize: 14, alignItems: 'center', mb: 2 }}>{displayedMessage}</Alert>}
+            {(displayedMessage && errMessage) && <Alert variant="outlined" severity="error" sx={{ fontSize: 14, alignItems: 'center', mb: 2 }}>{displayedMessage}</Alert>}
             <Typography variant="h3" textAlign="center" mb={4}>Log In</Typography>
             {["userEmail", "userPassword"].map((input) => (
               <FormControl fullWidth sx={{ mb: 2 }}>
@@ -208,16 +251,17 @@ const Auth = ({ users, isLoadingReg, errorReg, messageReg, isLoadingLog, errorLo
 
 const mapStateToProps = (state: {
   createUser: { isLoading: any, error: any, message: any },
-  loginUser: { isLoading: any, error: any, message: any },
-  users: { users: any }
+  logInOutUser: { isLoading: any, error: any, message: any, isLoggedIn: boolean },
+  users: { users: any },
 }) => ({
   users: state.users.users,
   isLoadingReg: state.createUser.isLoading,
   errorReg: state.createUser.error,
   messageReg: state.createUser.message,
-  isLoadingLog: state.loginUser.isLoading,
-  errorLog: state.loginUser.error,
-  messageLog: state.loginUser.message,
+  isLoadingLog: state.logInOutUser.isLoading,
+  errorLog: state.logInOutUser.error,
+  messageLog: state.logInOutUser.message,
+  isLoggedIn: state.logInOutUser.isLoggedIn
 })
 
 const mapDispatchToProps = {

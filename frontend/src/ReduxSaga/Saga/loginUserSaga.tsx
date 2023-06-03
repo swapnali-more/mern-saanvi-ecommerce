@@ -2,7 +2,7 @@ import { call, put, takeLatest } from "redux-saga/effects"
 import { apiCall } from '../../Api/Api';
 import { actionTypes } from "../../Utils/actionTypes";
 import { API_BASE_URL } from "../../config";
-import { loginUserSuccess, loginUserFailure } from "../Actions/loginUserActions";
+import { loginUserSuccess, loginUserFailure } from "../Actions/logInOutUserActions";
 
 function* loginUserSaga(action: any): Generator<any, any, any> {
     console.log("saga", action)
